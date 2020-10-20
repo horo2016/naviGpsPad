@@ -507,7 +507,6 @@ void *navimanage_handle (void *arg)
          
         if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
         {
-           SteerToHeading();
            ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
            if (ret == 1) //点在圆圈内 
            GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
@@ -526,7 +525,7 @@ void *navimanage_handle (void *arg)
                 break;
               case MOVE_STATUS :
 		  MoveDistance(waypointRange);
-                   // SteerToHeading();//行驶中依然根据航向脚纠偏算法
+                    SteerToHeading();//行驶中依然根据航向脚纠偏算法
                     break;
               case AVOIDOBJ_STATUS:
                 // 根据超声波获得反馈值进行避障
