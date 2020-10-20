@@ -436,7 +436,7 @@ unsigned long millis()
 
      usleep(10000);
      }
-     while (!done);
+     while ((!done)&&(GLOBAL_STATUS == MOVE_STATUS));
     cmd_send(0,0);
      threadActive = 0;
      return 0;
