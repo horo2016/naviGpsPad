@@ -18,6 +18,8 @@ extern char  GLOBAL_STATUS;
 #define SUBSUMPTION_INTERVAL 100
 #define LED_BLINK_INTERVAL 1000
 #define CALCULATE_GPS_HEADING_INTERVAL 1000
+
+extern char  GLOBAL_STATUS ;
 extern unsigned long millis();
 extern   void RotateDegrees(int degrees);
 extern   void MoveDistance(int meters);

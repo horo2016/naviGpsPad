@@ -16,7 +16,7 @@ extern "C" {
 #define HOST_NAME				"127.0.0.1"
 #define HOST_PORT				1883
 
-#define ReleaseMsg              "/a1JREJMZPKu/RilP0p5R80rdZgy38yMn/update"
+#define ReleaseMsg              "/update/state"
 #define SubscribeMsg            "/download/uniform"
 
 #define KEEPLIVE_TIME			500
