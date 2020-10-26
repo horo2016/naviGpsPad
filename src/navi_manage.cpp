@@ -5,6 +5,7 @@
 
 #include <time.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -32,7 +33,7 @@
 
 
 char  GLOBAL_STATUS =0;
-
+char  GLOBAL_SWITCH =0;
 float rollOffset = 0.0; //-0.4;
 float pitchOffset = 0.0; // 3.3;
 
@@ -59,6 +60,26 @@ float voltage2;
 unsigned long voltage2_t;
 
 bool voltageHysteresis = 0;
+
+
+
+/*******************************************************************************
+ * function name        : is_file_exist
+ * description  : set video and picture path of storage
+ * param[in]    : path-file path
+ * param[out]   : none
+ * return              : 0-exist, -1-not exist
+ *******************************************************************************/
+int is_file_exist(const char *path)
+{
+        if(path == NULL)
+                return -1;
+
+        if(0 == access(path, F_OK))
+                return 0;
+
+        return -1;
+}
 
 /*******************************************************************************
 * function name	: ReadWaypointsFile
@@ -498,74 +519,80 @@ void *navimanage_handle (void *arg)
  //   ReadWaypointsFile();
     DEBUG(LOG_DEBUG,"enc8888888888888888888888888888888888888 handle \n");
     printf("Starting main loop\n");
+    char onceread =0;
     while (1)
-     {
-         unsigned long loopTime = millis();
-       
-    	
-
-         
-        if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
-        {
-           ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
-           if (ret == 1) //点在圆圈内 
-           GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
-           else GLOBAL_STATUS = STANDBY_STATUS ;
-           switch(GLOBAL_STATUS)
+    {
+    	unsigned long loopTime = millis();
+	while(GLOBAL_SWITCH)
+	{   
+  	    if(onceread ==0)
+       	    {
+	     onceread =1;
+             if(is_file_exist("waypoints.dat")!=0)
+		{
+			GLOBAL_STATUS=STOP_STATUS;
+			GLOBAL_SWITCH =0 ;
+			break;	
+		}
+	     }
+            if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
            {
-              case STANDBY_STATUS:
+              ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
+              if (ret == 1) //点在圆圈内 
+              GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
+              else GLOBAL_STATUS = STANDBY_STATUS ;
+              switch(GLOBAL_STATUS)
+              {
+                case STANDBY_STATUS:
                 lastGPSMillis =0 ;
-		   ReadWaypointsFile();
+	        ReadWaypointsFile();
                 GLOBAL_STATUS = ROTATE_STATUS ;
                 break;
-              case ROTATE_STATUS :
+                case ROTATE_STATUS :
            
                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
                 GLOBAL_STATUS = MOVE_STATUS ;
                 break;
-              case MOVE_STATUS :
-		  MoveDistance(waypointRange);
-                    SteerToHeading();//行驶中依然根据航向脚纠偏算法
-                    break;
-              case AVOIDOBJ_STATUS:
+                case MOVE_STATUS :
+		 MoveDistance(waypointRange);
+                 SteerToHeading();//行驶中依然根据航向脚纠偏算法
+                 break;    
+	         case AVOIDOBJ_STATUS:
                 // 根据超声波获得反馈值进行避障
               //  int tmp_degree = DetectObstacles();
               //    if (tmp_degree)
               //       GLOBAL_STATUS = ROTATE_STATUS ;
-              break;
-              case WAYPOINTARRIVE_STATUS:
-                if(currentWaypoint < waypointCount )
-                    {
+        	 break;
+                 case WAYPOINTARRIVE_STATUS:
+                 if(currentWaypoint < waypointCount )
+                 {
                     currentWaypoint ++;
                     GLOBAL_STATUS = STANDBY_STATUS ;
-                }
-                else  if(currentWaypoint >= waypointCount ){
+                 }
+                 else  if(currentWaypoint >= waypointCount ){
                     GLOBAL_STATUS = STOP_STATUS ;
-                }
-                break;
-              case STOP_STATUS :
+                 }
+                 break;
+                case STOP_STATUS :
                 
                 break;
-              case MANUAL_STATUS :
+                case MANUAL_STATUS :
                 break;
-              default :
-              break;
-             
-                    
-                
+                default :
+                break;
 
-           }
+              }
      
-          lastSubMillis = millis();
-         
-        }
-          if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
-        {
-            CalculateHeadingToWaypoint();
-	        CalculateDistanceToWaypoint();
-            lastGPSMillis = millis();
-        }
-
+          	lastSubMillis = millis();
+            }
+        
+          	if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
+        	{
+            		CalculateHeadingToWaypoint();
+	        	CalculateDistanceToWaypoint();
+            		lastGPSMillis = millis();
+        	}
+     	}
           	// Shut down if the battery level drops below 10.8V
     	if (voltage1 > 11.2)
     	    voltageHysteresis = 1;
