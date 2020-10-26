@@ -156,17 +156,22 @@ void User_MsgCtl(MQTT_USER_MSG  *msg)
 	printf("MQTT>>msg: %s\r\n",msg->msg);	
 	printf("MQTT>>msg length: %d\r\n",msg->msglenth);	 
 	
-  if( get_value_from_cmdline((char *)msg->msg,RUNFORWARD,tmp_value )==0){
-      printf("runforward %d \n",atoi(tmp_value));
+      if( get_value_from_cmdline((char *)msg->msg,RUNFORWARD,tmp_value )==0){
+            printf("runforward %d \n",atoi(tmp_value));
 			MoveDistance(atoi(tmp_value));
 	}
-  else  if( get_value_from_cmdline((char *)msg->msg,TURNROUND,tmp_value )==0)
+      else  if( get_value_from_cmdline((char *)msg->msg,TURNROUND,tmp_value )==0)
 	{
-      RotateDegrees(atoi(tmp_value));
+           RotateDegrees(atoi(tmp_value));
 	}  else  if( get_value_from_cmdline((char *)msg->msg,"start",tmp_value )==0)
 	{
-        GLOBAL_STATUS = STANDBY_STATUS;
-	}
+           GLOBAL_STATUS = STANDBY_STATUS;
+	   GLOBAL_SWITCH = 1;
+	}else  if( get_value_from_cmdline((char *)msg->msg,"stop",tmp_value )==0)
+        {
+           GLOBAL_STATUS = STOP_STATUS;
+           GLOBAL_SWITCH = 0;
+        }
 	
 	// 处理后销毁数据
 	
