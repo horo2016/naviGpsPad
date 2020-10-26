@@ -14,7 +14,7 @@
 
 #include<pthread.h>
 #include"osp_syslog.h"
-
+#include "gps.h"
 /*******************************************************************************
 * function name	: IMUThread
 * description	: heartbeat function ,if receive new data ,clear counter,or,
@@ -63,9 +63,11 @@ void GpsHandle()
 	while (1)
 	{
 	 if(shared->isvalid !=0 ){
-        printf("lat:%f \n",shared->gpsInf.lat);
+	         printf("lat:%f \n",shared->gpsInf.lat);
 		 printf("lng:%f \n",shared->gpsInf.lng);
-		 shared->isvalid  =0;
+		 latitude = shared->gpsInf.lat;
+		 longitude = shared->gpsInf.lng; 
+		shared->isvalid  =0;
 	 	}else{
 			 DEBUG(LOG_DEBUG,"gps data read invalid no receive  \n");
 		}
