@@ -7,6 +7,7 @@ extern "C" {
 
 
 extern char  GLOBAL_STATUS;
+extern char  GLOBAL_SWITCH;
 #define STANDBY_STATUS 1
 #define ROTATE_STATUS 2
 #define MOVE_STATUS  3
