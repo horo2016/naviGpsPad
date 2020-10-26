@@ -185,6 +185,8 @@ void *IMUThread(void *)
 
 	    // Detect impacts
 	    const float ouchThreshold = 15.0;
+//	    printf("%.1f %.1f %.1f \n",fabs(gyroX),fabs(gyroY),fabs(gyroZ));
+#if 0 // qu xiao jiance  yinwei meijiaozhun 
 	    if ( (fabs(gyroX) > ouchThreshold || fabs(gyroY) > ouchThreshold || fabs(gyroZ) > ouchThreshold)
 			&& (fabs(prevGx) > ouchThreshold || fabs(prevGy) > ouchThreshold || fabs(prevGz) > ouchThreshold))
 	    {
@@ -215,6 +217,7 @@ void *IMUThread(void *)
 	    prevGx = gyroX;
 	    prevGy = gyroY;
 	    prevGz = gyroZ;
+#endif 
 	}
     }
 }
