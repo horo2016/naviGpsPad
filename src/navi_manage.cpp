@@ -52,7 +52,7 @@ GeoCoordinate waypoints[256];
 int waypointCount = 0;
 int currentWaypoint = 0;
 double waypointRange = 0.0;
-
+char targetheadingisvalid = 0;
 
 float voltage1;
 unsigned long voltage1_t;
@@ -85,7 +85,7 @@ int is_file_exist(const char *path)
 * function name	: ReadWaypointsFile
 * description	: from file waypoint.dat read datas from internet ,format :lat|long  
 *				  call heatbeat main func
-* param[in] 	: task_table[4]
+* param[in] 	: 将经纬度从文件中读到waypoints 中
 * param[out] 	: none
 * return 		: none
  *******************************************************************************/
@@ -93,7 +93,7 @@ int is_file_exist(const char *path)
 void ReadWaypointsFile()
 {
     FILE *waypointFile = fopen("waypoints.dat", "r");
-    if (waypointFile == 0)
+    if (waypointFile == NULL)
 	return;
 
     waypointCount = 0;
@@ -301,7 +301,7 @@ unsigned long millis()
      // targetHeading is the value used by the heading PID controller.  By changing this, we change the heading
      // to which the SteerToHeading subsumption task will try to steer us.
      targetHeading = getBearing(current, waypoint);
- 
+     targetheadingisvalid = 1; 
      return;
  }
    /*******************************************************************************
@@ -438,7 +438,7 @@ unsigned long millis()
 	     else
 	     {
 	           if(targetPosition - (int)positionx > 20)
-	            cmd_send(2,50);
+	            cmd_send(2,50);//以比较高的速度运行
 	           else  cmd_send(2,30);
 	     }
 
@@ -537,25 +537,26 @@ void *navimanage_handle (void *arg)
 	     }
             if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
            {
-              ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
-              if (ret == 1) //点在圆圈内 
-              GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
-              else GLOBAL_STATUS = STANDBY_STATUS ;
               switch(GLOBAL_STATUS)
               {
-                case STANDBY_STATUS:
+                case STANDBY_STATUS://启动后的初始状态
                 lastGPSMillis =0 ;
 	        ReadWaypointsFile();
                 GLOBAL_STATUS = ROTATE_STATUS ;
                 break;
                 case ROTATE_STATUS :
-           
+		if(targetheadingisvalid == 0)
+		  break;//不合法 返回
+		targetheadingisvalid = 0;		
                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
                 GLOBAL_STATUS = MOVE_STATUS ;
                 break;
                 case MOVE_STATUS :
+		 if((waypointRange > 10))//大于10m 认为不合法 所以规划路径时需要注意
+			 break;
 		 MoveDistance(waypointRange);
-                 SteerToHeading();//行驶中依然根据航向脚纠偏算法
+                 SteerToHeading();//行驶中依然根据航向脚纠偏算法I
+
                  break;    
 	         case AVOIDOBJ_STATUS:
                 // 根据超声波获得反馈值进行避障
@@ -567,7 +568,7 @@ void *navimanage_handle (void *arg)
                  if(currentWaypoint < waypointCount )
                  {
                     currentWaypoint ++;
-                    GLOBAL_STATUS = STANDBY_STATUS ;
+                    GLOBAL_STATUS = ROTATE_STATUS ;
                  }
                  else  if(currentWaypoint >= waypointCount ){
                     GLOBAL_STATUS = STOP_STATUS ;
@@ -582,6 +583,13 @@ void *navimanage_handle (void *arg)
                 break;
 
               }
+	         // 必须先运行一次 standby 状态 只有当在目的地附近3米内才会转换状态
+	         ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
+                 if (ret == 1) //点在圆圈内
+                 {   
+                         GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
+                 }
+
      
           	lastSubMillis = millis();
             }
@@ -591,7 +599,7 @@ void *navimanage_handle (void *arg)
             		CalculateHeadingToWaypoint();
 	        	CalculateDistanceToWaypoint();
             		lastGPSMillis = millis();
-        	}
+
      	}
           	// Shut down if the battery level drops below 10.8V
     	if (voltage1 > 11.2)
