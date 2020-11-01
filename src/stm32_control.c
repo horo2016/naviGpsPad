@@ -126,10 +126,10 @@ void cmd_send(const char cmd_v,int speed)
      else if(cmd_v == 3)
      	{
      	Vx.fvalue = 0; 
-	   Ang_v.fvalue = -0.4;
+	   Ang_v.fvalue = -0.6;
 		 }
      else if(cmd_v == 4){
-	   Ang_v.fvalue = 0.4;
+	   Ang_v.fvalue = 0.6;
 		 Vx.fvalue = 0; 
      	}
    else if(cmd_v == 0){

@@ -332,13 +332,13 @@ unsigned long millis()
  
      // targetHeading is the value used by the heading PID controller.  By changing this, we change the heading
      // to which the SteerToHeading subsumption task will try to steer us.
-     waypointRange = getDistance(current, waypoint);
- 
-     if (waypointRange < 0.0030) // 3.0 meters
+     double waypointRangetmp = getDistance(current, waypoint);
+     waypointRange = waypointRangetmp*1000;
+     if (waypointRange < 3.0) // 3.0 meters
      currentWaypoint++;
      if (currentWaypoint >= waypointCount)
      currentWaypoint = 0;
-     printf("two points distance is %.4f \n",waypointRange); 
+     printf("--->two points distance is %.1f m\n",waypointRange); 
      return;
  }
  
@@ -368,7 +368,7 @@ unsigned long millis()
      int startHeading =   (int)heading;//headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
      
      printf("startHeading %d  \n",startHeading);
-     int targetHeadingtmp = startHeading + degrees;//得到最终的真北方向
+     int targetHeadingtmp =  degrees;//得到最终的真北方向
      if (targetHeadingtmp < 0)
      targetHeadingtmp += 360;
      if (targetHeadingtmp > 359)
@@ -449,7 +449,7 @@ unsigned long millis()
 	     {
 	           if(targetPosition - (int)positionx > 20)
 	            cmd_send(2,50);//以比较高的速度运行
-	           else  cmd_send(2,30);
+	           else  cmd_send(2,50);
 	     }
 
 
@@ -576,9 +576,9 @@ void *navimanage_handle (void *arg)
                 GLOBAL_STATUS = MOVE_STATUS ;
                 break;
                 case MOVE_STATUS :
-		 if((waypointRange > 20))//大于10m 认为不合法 所以规划路径时需要注意
+		 if((waypointRange > 100))//大于100m 认为不合法 所以规划路径时需要注意
 		{	
-			DEBUG(LOG_ERR,"distance > 10m \n");
+			DEBUG(LOG_ERR,"distance > 100m \n");
 			 break;
 		}	
 		 MoveDistance(waypointRange);
