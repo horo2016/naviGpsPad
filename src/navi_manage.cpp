@@ -532,6 +532,7 @@ void *navimanage_handle (void *arg)
 		{
 			GLOBAL_STATUS=STOP_STATUS;
 			GLOBAL_SWITCH =0 ;
+			DEBUG(LOG_ERR,"waypoint file is not exist \n");
 			break;	
 		}
 	     }
@@ -553,7 +554,10 @@ void *navimanage_handle (void *arg)
                 break;
                 case MOVE_STATUS :
 		 if((waypointRange > 10))//大于10m 认为不合法 所以规划路径时需要注意
+		{	
+			DEBUG(LOG_ERR,"distance > 10m \n");
 			 break;
+		}	
 		 MoveDistance(waypointRange);
                  SteerToHeading();//行驶中依然根据航向脚纠偏算法I
 
