@@ -356,9 +356,9 @@ unsigned long millis()
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
  
     printf("rotateDegreesThread  start ****************\n");
-     int startHeading = headingFilter.GetValue();
+     int startHeading = headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
      printf("startHeading %d  \n",startHeading);
-     int targetHeading = startHeading + degrees;
+     int targetHeading = startHeading + degrees;//得到最终的真北方向
      if (targetHeading < 0)
      targetHeading += 360;
      if (targetHeading > 359)
@@ -393,7 +393,7 @@ unsigned long millis()
 	     if (currentHeading > startHeading && degrees < 0)
 	         startHeading = currentHeading;
  
-     usleep(100000);
+     usleep(1000);//不要太长否则容易转过头 
      }
      while (!done);
     cmd_send(0,0);
