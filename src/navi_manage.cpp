@@ -92,17 +92,19 @@ int is_file_exist(const char *path)
 
 void ReadWaypointsFile()
 {
-    FILE *waypointFile = fopen("waypoints.dat", "r");
+    FILE *waypointFile = fopen("waypoints.data", "r");
     if (waypointFile == NULL)
-	return;
-
+     {
+	 DEBUG(LOG_ERR,"waypoints read err \n");	
+	 return;
+	}
     waypointCount = 0;
     while (!feof(waypointFile))
     {
 	char line[256];
 	fgets(line, 256, waypointFile);
-	const char *wpLat = strtok(line, "|");
-	const char *wpLong = strtok(0, "|");
+	const char *wpLong = strtok(line, "|");
+	const char *wpLat = strtok(0, "|");
 	if (wpLat && wpLong)
 	{
 	    GeoCoordinate waypoint(wpLat, wpLong);
@@ -110,6 +112,8 @@ void ReadWaypointsFile()
 	    waypointCount++;
 	}
     }
+    printf("the first latitude:%f longititude %f \n",waypoints[0].latitude,waypoints[0].longitude);
+    printf("waypoints all count is %d read from waypoint file \n",waypointCount);
     fclose(waypointFile);
 }
 // Quick and dirty function to get elapsed time in milliseconds.  This will wrap at 32 bits (unsigned long), so
@@ -135,14 +139,16 @@ unsigned long millis()
  * @return  
  */
  char isInRange(int raduis,double present_lat,double present_lng,double lat_circle,double lng_circle){
+    printf("--->present:%f %f ,%f %f \n",present_lat,present_lng,lat_circle,lng_circle);
     double R = 6378137.0;
-     float const PI_F = 3.14159265F;
+    float const PI_F = 3.14159265F;
     double dLat = (lat_circle- present_lat ) * M_PI / 180;
     double dLng = (lng_circle - present_lng )* M_PI / 180;
     double a = sin(dLat / 2) * sin(dLat / 2) + cos(present_lat * PI / 180) * cos(lat_circle* PI / 180) * sin(dLng / 2) * sin(dLng / 2);
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     double d = R * c;
     double dis = round(d);//近似值
+    printf("isrange distance %.2f \n",dis);
     if (dis <= raduis){  //点在圆内
         return 1;
     }else {
@@ -301,6 +307,7 @@ unsigned long millis()
      // targetHeading is the value used by the heading PID controller.  By changing this, we change the heading
      // to which the SteerToHeading subsumption task will try to steer us.
      targetHeading = getBearing(current, waypoint);
+     printf("---->calculat two points degress is %d \n",(unsigned int)targetHeading);
      targetheadingisvalid = 1; 
      return;
  }
@@ -321,6 +328,7 @@ unsigned long millis()
      // getDistance() expects its waypoint coordinates in radians
      waypoint.latitude = waypoint.latitude * PI / 180.0;
      waypoint.longitude = waypoint.longitude * PI / 180.0;
+
  
      // targetHeading is the value used by the heading PID controller.  By changing this, we change the heading
      // to which the SteerToHeading subsumption task will try to steer us.
@@ -330,7 +338,7 @@ unsigned long millis()
      currentWaypoint++;
      if (currentWaypoint >= waypointCount)
      currentWaypoint = 0;
- 
+     printf("two points distance is %.4f \n",waypointRange); 
      return;
  }
  
@@ -355,16 +363,18 @@ unsigned long millis()
      int degrees = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
  
-    printf("rotateDegreesThread  start ****************\n");
-     int startHeading = headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
+     printf("rotateDegreesThread  start ****************\n");
+     
+     int startHeading =   (int)heading;//headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
+     
      printf("startHeading %d  \n",startHeading);
-     int targetHeading = startHeading + degrees;//得到最终的真北方向
-     if (targetHeading < 0)
-     targetHeading += 360;
-     if (targetHeading > 359)
+     int targetHeadingtmp = startHeading + degrees;//得到最终的真北方向
+     if (targetHeadingtmp < 0)
+     targetHeadingtmp += 360;
+     if (targetHeadingtmp > 359)
      targetHeading -=360;
      char  done = 0;
-	  printf("targetHeading %d ,degrees:%d \n",targetHeading,degrees);
+	  printf("targetHeading %d ,degrees:%d \n",targetHeadingtmp,degrees);
   do{
 	     if (degrees < 0)
 	     {
@@ -379,12 +389,12 @@ unsigned long millis()
 
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
 	     int currentHeading = (int)heading;//headingFilter.GetValue();
-	     printf("Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, targetHeading);
-	     if ((currentHeading >= targetHeading) && (degrees > 0) && (startHeading < targetHeading))
+	     printf("Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, targetHeadingtmp);
+	     if ((currentHeading >= targetHeadingtmp) && (degrees > 0) && (startHeading < targetHeadingtmp))
 	     {
 	         done = 1;
 	     }
-	     if ((currentHeading <= targetHeading) && (degrees < 0) && (startHeading > targetHeading))
+	     if ((currentHeading <= targetHeadingtmp) && (degrees < 0) && (startHeading > targetHeadingtmp))
 	     {
 	         done = 1;
 	     }
@@ -528,32 +538,45 @@ void *navimanage_handle (void *arg)
   	    if(onceread ==0)
        	    {
 	     onceread =1;
-             if(is_file_exist("waypoints.dat")!=0)
+             if(is_file_exist("waypoints.data")!=0)
 		{
 			GLOBAL_STATUS=STOP_STATUS;
 			GLOBAL_SWITCH =0 ;
+			onceread =0;
 			DEBUG(LOG_ERR,"waypoint file is not exist \n");
 			break;	
 		}
 	     }
+	    if((latitude ==0.0)&&(longitude == 0.0))
+	    {
+		DEBUG(LOG_ERR,"GPS CANNOT LOCATION PLEASE CHECK \n");
+                GLOBAL_STATUS = STOP_STATUS;
+                GLOBAL_SWITCH = 0;
+                break;
+
+	    }
             if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
            {
               switch(GLOBAL_STATUS)
               {
                 case STANDBY_STATUS://启动后的初始状态
+		DEBUG(LOG_DEBUG,"STANDBY STATUS \n");
                 lastGPSMillis =0 ;
 	        ReadWaypointsFile();
                 GLOBAL_STATUS = ROTATE_STATUS ;
                 break;
                 case ROTATE_STATUS :
 		if(targetheadingisvalid == 0)
+		{
+		  DEBUG(LOG_ERR,"TARGET HEADING IS invalid , continue\n");
 		  break;//不合法 返回
+		}
 		targetheadingisvalid = 0;		
                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
                 GLOBAL_STATUS = MOVE_STATUS ;
                 break;
                 case MOVE_STATUS :
-		 if((waypointRange > 10))//大于10m 认为不合法 所以规划路径时需要注意
+		 if((waypointRange > 20))//大于10m 认为不合法 所以规划路径时需要注意
 		{	
 			DEBUG(LOG_ERR,"distance > 10m \n");
 			 break;
@@ -591,6 +614,7 @@ void *navimanage_handle (void *arg)
 	         ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
                  if (ret == 1) //点在圆圈内
                  {   
+ 			DEBUG(LOG_DEBUG,"arrive into circle scal \n");
                          GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
                  }
 
@@ -605,7 +629,7 @@ void *navimanage_handle (void *arg)
             		lastGPSMillis = millis();
                 }
      	}//end while switch on
-       	if(GLOBAL_STATUS == MANUAL_STATUS )
+     	if(GLOBAL_STATUS == MANUAL_STATUS )
 	{
 		SteerToHeading();
 	}
