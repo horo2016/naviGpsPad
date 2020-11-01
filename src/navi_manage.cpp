@@ -582,7 +582,7 @@ void *navimanage_handle (void *arg)
                 default :
                 break;
 
-              }
+              }//end switch
 	         // 必须先运行一次 standby 状态 只有当在目的地附近3米内才会转换状态
 	         ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
                  if (ret == 1) //点在圆圈内
@@ -592,21 +592,21 @@ void *navimanage_handle (void *arg)
 
      
           	lastSubMillis = millis();
-            }
-       } 
+            }//end  sub loop
+      
           	if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
         	{
             		CalculateHeadingToWaypoint();
 	        	CalculateDistanceToWaypoint();
             		lastGPSMillis = millis();
                 }
-     	}
+     	}//end while switch on
 
-     		}
+     
           	// Shut down if the battery level drops below 10.8V
-    	if (voltage1 > 11.2)
+    	if(voltage1 > 11.2)
     	    voltageHysteresis = 1;
-    	if (voltageHysteresis  && voltage1 < 10.8)
+    	if(voltageHysteresis  && voltage1 < 10.8)
     	{
     	    signal(SIGCHLD, SIG_IGN);
     	    long shutdownPID = fork();
@@ -623,7 +623,7 @@ void *navimanage_handle (void *arg)
         unsigned long now = millis();
     	if (now - loopTime < 1)
             usleep((1 - (now - loopTime)) * 1000);
-    }
+    }//end while1
 
 }
 
