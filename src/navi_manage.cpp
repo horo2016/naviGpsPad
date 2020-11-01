@@ -593,7 +593,7 @@ void *navimanage_handle (void *arg)
      
           	lastSubMillis = millis();
             }
-        
+       } 
           	if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
         	{
             		CalculateHeadingToWaypoint();
@@ -601,6 +601,8 @@ void *navimanage_handle (void *arg)
             		lastGPSMillis = millis();
                 }
      	}
+
+     		}
           	// Shut down if the battery level drops below 10.8V
     	if (voltage1 > 11.2)
     	    voltageHysteresis = 1;
