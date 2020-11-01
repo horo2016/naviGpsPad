@@ -422,13 +422,13 @@ unsigned long millis()
      int meters = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
  
-    printf("moveDistanceThread  start 8****************\n");
+    printf("moveDistanceThread  start ****************\n");
      int startPosition = positionx;
      printf("startPosition %d  \n",startPosition);
      int targetPosition = startPosition + meters;
     
      char  done = 0;
-	printf("targetHeading %d ,meters:%d \n",targetPosition,meters);
+	printf("targetPosition: %d ,meters:%d \n",targetPosition,meters);
   do{
   	 
 	     if (meters < 0)
@@ -445,7 +445,7 @@ unsigned long millis()
 
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
      int currentPosition = (int)positionx;
-     printf("MOve: currentPosition = %d   targetHeading = %d\n", currentPosition, targetPosition);
+     printf("MOve: currentPosition = %d   targetPosition = %d\n", currentPosition, targetPosition);
      if ((currentPosition <= targetPosition) && (meters < 0) && (startPosition > targetPosition))
      {
          done = 1;
@@ -599,7 +599,7 @@ void *navimanage_handle (void *arg)
             		CalculateHeadingToWaypoint();
 	        	CalculateDistanceToWaypoint();
             		lastGPSMillis = millis();
-
+                }
      	}
           	// Shut down if the battery level drops below 10.8V
     	if (voltage1 > 11.2)

@@ -158,6 +158,7 @@ void User_MsgCtl(MQTT_USER_MSG  *msg)
 	
       if( get_value_from_cmdline((char *)msg->msg,RUNFORWARD,tmp_value )==0){
             printf("runforward %d \n",atoi(tmp_value));
+			GLOBAL_STATUS = MOVE_STATUS;
 			MoveDistance(atoi(tmp_value));
 	}
       else  if( get_value_from_cmdline((char *)msg->msg,TURNROUND,tmp_value )==0)
@@ -290,7 +291,7 @@ void *Mqtt_PublishTask(void *argv)
 
 		if (user_Client.Status == Connect){
 			Creatstatejson(heading,rollAngle,pitchAngle);
-			printf("mqtt sensor: %s \n",send_buf);
+			//printf("mqtt sensor: %s \n",send_buf);
 			if (MQTTMsgPublish(user_Client, "/update/state", QOS0, 0,
 				(unsigned char *)send_buf,strlen(send_buf)) != 0)
 			{

@@ -34,7 +34,9 @@
 typedef struct
 {    
     char isvalid;
-	Location gpsInf;
+    Location gpsInf;
+    float gpsheading;
+    float gpsvelocity;
 }use_shared;
 
 void GpsHandle()
@@ -65,6 +67,7 @@ void GpsHandle()
 	 if(shared->isvalid !=0 ){
 	         printf("lat:%f \n",shared->gpsInf.lat);
 		 printf("lng:%f \n",shared->gpsInf.lng);
+		printf("gpsheading %f %f",shared->gpsheading,shared->gpsvelocity);
 		 latitude = shared->gpsInf.lat;
 		 longitude = shared->gpsInf.lng; 
 		shared->isvalid  =0;
