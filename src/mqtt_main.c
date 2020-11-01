@@ -163,6 +163,7 @@ void User_MsgCtl(MQTT_USER_MSG  *msg)
 	}
       else  if( get_value_from_cmdline((char *)msg->msg,TURNROUND,tmp_value )==0)
 	{
+	   GLOBAL_STATUS = MANUAL_STATUS;
            RotateDegrees(atoi(tmp_value));
 	}  else  if( get_value_from_cmdline((char *)msg->msg,"start",tmp_value )==0)
 	{

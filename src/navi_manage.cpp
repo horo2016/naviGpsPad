@@ -355,7 +355,7 @@ unsigned long millis()
      int degrees = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
  
-    printf("rotateDegreesThread  start 8****************\n");
+    printf("rotateDegreesThread  start ****************\n");
      int startHeading = headingFilter.GetValue();
      printf("startHeading %d  \n",startHeading);
      int targetHeading = startHeading + degrees;
@@ -601,7 +601,10 @@ void *navimanage_handle (void *arg)
             		lastGPSMillis = millis();
                 }
      	}//end while switch on
-
+       	if(GLOBAL_STATUS == MANUAL_STATUS )
+	{
+		SteerToHeading();
+	}
      
           	// Shut down if the battery level drops below 10.8V
     	if(voltage1 > 11.2)
