@@ -360,21 +360,76 @@ unsigned long millis()
      return 0;
      threadActive = true;
  
+     int finnalheading = *(int*)threadParam;
+     free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
+ 
+     printf("rotateDegreesThread  start ****************\n");
+     
+     int startHeading =   headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
+     
+     printf("startHeading %d  \n",startHeading);
+     int degrees  =  startHeading - finnalheading;//得到最终的真北方向
+ //    if (targetHeadingtmp < 0)
+   //  targetHeadingtmp += 360;
+     //if (targetHeadingtmp > 359)
+    // targetHeadingtmp -=360;
+     char  done = 0;
+	  printf("targetHeading %d ,turn degrees:%d \n",finnalheading,degrees);
+  do{
+	     if (degrees < 0)
+	     {
+	  
+	        cmd_send(3,0);
+	     }
+	     else
+	     {
+
+	         cmd_send(4,0);
+	     }
+
+     // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
+	     int currentHeading  = int(heading);//headingFilter.GetValue();
+	     printf("Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, finnalheading);
+	     if (abs(currentHeading - finnalheading) <= 10)
+	     {
+	         done = 1;
+	     }
+	  //   if (currentHeading < startHeading && degrees > 0)
+	    //     startHeading = currentHeading;
+	    // if (currentHeading > startHeading && degrees < 0)
+	      //   startHeading = currentHeading;
+ 
+     usleep(10000);//不要太长否则容易转过头 
+     }
+     while (!done);
+    cmd_send(0,0);
+     threadActive = 0;
+     return 0;
+ }
+ static void *rotateDegreesThread1(void *threadParam)
+ {
+     // Make sure there's only one rotate thread running at a time.
+     // TODO: proper thread synchronization would be better here
+     static bool threadActive = false;
+     if (threadActive)
+     return 0;
+     threadActive = true;
+ 
      int degrees = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
  
      printf("rotateDegreesThread  start ****************\n");
      
-     int startHeading =   (int)heading;//headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
+     int startHeading =   headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
      
      printf("startHeading %d  \n",startHeading);
-     int targetHeadingtmp =  degrees;//得到最终的真北方向
+     int targetHeadingtmp =  startHeading - degrees;//得到最终的真北方向
      if (targetHeadingtmp < 0)
      targetHeadingtmp += 360;
      if (targetHeadingtmp > 359)
-     targetHeading -=360;
+     targetHeadingtmp -=360;
      char  done = 0;
-	  printf("targetHeading %d ,degrees:%d \n",targetHeadingtmp,degrees);
+	  printf("curreent heading :%d targetHeading %d ,degrees:%d \n", (int)heading,targetHeadingtmp,degrees);
   do{
 	     if (degrees < 0)
 	     {
@@ -571,7 +626,8 @@ void *navimanage_handle (void *arg)
 		  DEBUG(LOG_ERR,"TARGET HEADING IS invalid , continue\n");
 		  break;//不合法 返回
 		}
-		targetheadingisvalid = 0;		
+		targetheadingisvalid = 0;
+		 SteerToHeading();		
                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
                 GLOBAL_STATUS = MOVE_STATUS ;
                 break;
