@@ -386,7 +386,7 @@ unsigned long millis()
 
 	         cmd_send(4,0);
 	     }
-
+        sleep(1);
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
 	     int currentHeading  = int(heading);//headingFilter.GetValue();
 	     printf("Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, finnalheading);
@@ -399,11 +399,12 @@ unsigned long millis()
 	    // if (currentHeading > startHeading && degrees < 0)
 	      //   startHeading = currentHeading;
  
-     usleep(10000);//不要太长否则容易转过头 
+     //sleep(1);//不要太长否则容易转过头 
      }
      while (!done);
     cmd_send(0,0);
      threadActive = 0;
+      GLOBAL_STATUS = MOVE_STATUS ;
      return 0;
  }
  static void *rotateDegreesThread1(void *threadParam)
@@ -629,7 +630,7 @@ void *navimanage_handle (void *arg)
 		targetheadingisvalid = 0;
 		 SteerToHeading();		
                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
-                GLOBAL_STATUS = MOVE_STATUS ;
+               // GLOBAL_STATUS = MOVE_STATUS ;
                 break;
                 case MOVE_STATUS :
 		 if((waypointRange > 100))//大于100m 认为不合法 所以规划路径时需要注意
