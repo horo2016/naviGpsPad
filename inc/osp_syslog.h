@@ -88,7 +88,7 @@ typedef struct
     logwrite(__FILE__,__LINE__,log_id,logLev,(log_buffer));
 
 #define LOG_LEV			LOG_TRACE
-#define FILE_LOG_PATH		"/home/linaro/media/user/control_engine.log"
+#define FILE_LOG_PATH		"/home/app/gpscarbot.log"
 
 //#define STORE_FILE
 #ifndef STORE_FILE

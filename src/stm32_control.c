@@ -57,6 +57,7 @@ typedef union{
 	unsigned char cvalue[4];
 	float fvalue;
 }float_union;
+float_union Vx,Vy,Ang_v;
 
 int imu_fd;
 
@@ -112,16 +113,15 @@ void cmd_send(const char cmd_v,int speed)
 {
 	unsigned char i;
 	char cmd_vel[16];
-	float_union Vx,Vy,Ang_v;
-	Vx.fvalue =0;
-	Ang_v.fvalue = 0;
+	
+//前后 左右 停止 ，带角速度和线速度同时存在
 	if(cmd_v ==1 ){
 	  Vx.fvalue = speed;
-	  Ang_v.fvalue = 0;
+	  
 	}
    else if(cmd_v == 2){
 	   Vx.fvalue =  speed;
-		Ang_v.fvalue = 0;
+		
    	}
      else if(cmd_v == 3)
      	{
@@ -133,9 +133,14 @@ void cmd_send(const char cmd_v,int speed)
 		 Vx.fvalue = 0; 
      	}
    else if(cmd_v == 0){
-        Vx.fvalue = 0; 
+         Vx.fvalue = 0; 
 		 Ang_v.fvalue = 0;
 		  //Ang_v.fvalue = 0;
+    }
+     else if(cmd_v == 5){
+          
+		 Ang_v.fvalue = speed;
+		 
     }
 	  Vy.fvalue = 0;
 	  
@@ -216,7 +221,9 @@ int *stm_Loop()
 	else {
 		   printf("%s open failed \n",dev);
 	}
-
+    Vx.fvalue = 0; 
+	Vy.fvalue = 0; 
+	Ang_v.fvalue = 0; 
 	  float_union posx,posy,vx,vy,va,yaw,vr,vl;
 	while(1)	
 	{	
