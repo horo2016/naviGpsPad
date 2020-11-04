@@ -17,7 +17,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 //#include "include.h"
-#include "geocoords.h"
 
 #include "imu.h"
 
