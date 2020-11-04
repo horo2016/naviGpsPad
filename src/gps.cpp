@@ -21,6 +21,9 @@
 double latitude = 0;
 unsigned long latitude_t;
 double longitude = 0;
+unsigned int gpsheading =0;
+unsigned int gpsvelocity =0;
+
 unsigned long longitude_t;
 double latitude_error;
 double longitude_error;
