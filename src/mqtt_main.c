@@ -61,8 +61,8 @@ int Creatstatejson(float head,float roll,float pitch)
     cJSON_AddItemToObject(root, "angspeed", cJSON_CreateNumber(angspeed));
     cJSON_AddItemToObject(root, "targetheading", cJSON_CreateNumber((int)targetHeading));
     cJSON_AddItemToObject(root, "distance", cJSON_CreateNumber((int)waypointRange));
-    cJSON_AddItemToObject(root, "nextwaypoint_lon", cJSON_CreateNumber(waypoints[currentWaypoint].longitude);
-    cJSON_AddItemToObject(root, "nextwaypoint_lat", cJSON_CreateNumber(waypoints[currentWaypoint].latitude));
+    cJSON_AddItemToObject(root, "nextwaypoint_lon", cJSON_CreateNumber(waypointlongitude));
+    cJSON_AddItemToObject(root, "nextwaypoint_lat", cJSON_CreateNumber(waypointlatitude));
     
     memcpy(send_buf,cJSON_Print(root),strlen(cJSON_Print(root)));
       

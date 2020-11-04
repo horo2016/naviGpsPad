@@ -47,7 +47,8 @@ PID headingPID(&headingPIDInput, &headingPIDOutput, &targetHeading,1,0,0, DIRECT
 
 
 
-
+double waypointlongitude;
+double waypointlatitude;
 GeoCoordinate waypoints[256];
 int waypointCount = 0;
 int currentWaypoint = 0;
@@ -481,7 +482,8 @@ int HeadingAnalysis(int Heading,int Bearing)
 		  usleep(500000);
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
 	     int currentHeading  = int(heading);//headingFilter.GetValue();
-	     for(int i=0;i<3;i++)
+	     heading_sum =0;
+  		for(int i=0;i<3;i++)
 		 {
 		 	    currentHeading  = int(heading);
 				usleep(500000);
