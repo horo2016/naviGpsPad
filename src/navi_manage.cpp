@@ -52,7 +52,7 @@ GeoCoordinate waypoints[256];
 int waypointCount = 0;
 int currentWaypoint = 0;
 double waypointRange = 0.0;
-char targetheadingisvalid = 0;
+
 
 float voltage1;
 unsigned long voltage1_t;
@@ -168,7 +168,42 @@ unsigned long millis()
  
   
  }
+ //heading ：车的航向角相对于真北方向
+// bearing： 目的地相对于真北方向的方位角
+//返回：最优的转弯方案：转弯方向，转弯角度，行驶距离
+int HeadingAnalysis(int Heading,int Bearing)
+{
+ int headingtmp;
+ char t_dirction =0;
+ if((Heading - Bearing) < 0)
+ {
+	 headingtmp = Heading + 360;
+	 if(headingtmp - Bearing <= 180)
+	 {
+	 	//左转
+	 	printf("turn left %d\n",headingtmp - Bearing);
+		t_dirction = 1 ;
+	 }else if(headingtmp - Bearing > 180){
+	 	printf("turn right %d\n",360 - (headingtmp-Bearing));
+		t_dirction = 2 ;
+	 }
+ }else if((Heading - Bearing) > 0)
+ {
+ 	if(Heading - Bearing < 180)
+	 {
+		printf("turn left %d\n",Heading - Bearing);
+		t_dirction = 1 ;
+		
+	 }
+ 	else if(Heading - Bearing > 180)
+	 {
+	 	printf("turn right %d \n",360 - (Heading-Bearing));
+		t_dirction = 2 ;
+	 }
+ }
+ return t_dirction;
  
+}
  float prevHeading = 0;
  
 /*******************************************************************************
@@ -251,6 +286,60 @@ unsigned long millis()
   //   steerToHeadingControl->active = steerToHeadingMode;
  }
  
+/*******************************************************************************
+* function name	: SteerToHeadingOfGPS
+* description	: heartbeat function ,if receive new data ,clear counter,or,
+*				  call heatbeat main func
+* param[in] 	: task_table[4]
+* param[out] 	: none
+* return 		: none
+*
+* Steer to heading subsumption task.  If active and not subsumed by a higher priority task, 
+* this will set the motor speeds
+* to steer to the given heading (targetHeading)
+ *******************************************************************************/
+ void SteerToHeadingOfGPS()
+ {
+     // Filter the mag data to eliminate noise
+      int  filteredHeading = 0;//heading;
+      int tmpgpsheading = (int)gpsheading;
+	  int tmpgpsvelocity = (int)gpsvelocity;
+	  int tmp_currentheading =0;
+	  int direction =0;
+	  if((gpsvelocity > 1.0)&&(tmpgpsheading != 0))//m/s
+	  
+ 			tmp_currentheading  = tmpgpsheading;
+      else {
+			for(int i =0;i<3;i++)
+				filteredHeading += (int)heading;
+			tmp_currentheading = filteredHeading /3;
+	  }
+     direction =  (tmp_currentheading- (int)targetHeading);
+	  if(abs(direction) >=20)
+	  	{
+	  	  if(HeadingAnalysis(tmp_currentheading, (int)targetHeading) == 1)
+	  	  cmd_send(5,0.20);//left 
+		 else  
+	  	  cmd_send(5,-0.20);
+	  	}
+	  else if(abs(direction) >=10)
+	  	{
+	  	  if(HeadingAnalysis(tmp_currentheading, (int)targetHeading) == 1)
+	  	  cmd_send(5,0.10);
+		 else  
+	  	  cmd_send(5,-0.10);
+	  	}   
+	else if(abs(direction) < 10)
+	  	{
+	  	  
+	  	  cmd_send(5,0);
+	  	} 
+ 
+  //   steerToHeadingControl->leftMotorPower = NORMAL_SPEED - headingPIDOutput;
+   //  steerToHeadingControl->rightMotorPower = NORMAL_SPEED + headingPIDOutput;
+ 
+  //   steerToHeadingControl->active = steerToHeadingMode;
+ }
  /*******************************************************************************
  * function name : DetectObstacles
  * description   : heartbeat function ,if receive new data ,clear counter,or,
@@ -308,7 +397,7 @@ unsigned long millis()
      // to which the SteerToHeading subsumption task will try to steer us.
      targetHeading = getBearing(current, waypoint);
      printf("---->calculat two points degress is %d \n",(unsigned int)targetHeading);
-     targetheadingisvalid = 1; 
+   
      return;
  }
    /*******************************************************************************
@@ -338,7 +427,7 @@ unsigned long millis()
      currentWaypoint++;
      if (currentWaypoint >= waypointCount)
      currentWaypoint = 0;
-     printf("--->two points distance is %.1f m\n",waypointRange); 
+     DEBUG(LOG_DEBUG,"--->two points distance is %.1f m\n",waypointRange); 
      return;
  }
  
@@ -363,18 +452,19 @@ unsigned long millis()
      int finnalheading = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
  
-     printf("rotateDegreesThread  start ****************\n");
+     DEBUG(LOG_DEBUG,"rotateDegreesThread  start ****************\n");
      
      int startHeading =   headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
      
-     printf("startHeading %d  \n",startHeading);
+     DEBUG(LOG_DEBUG,"startHeading %d  \n",startHeading);
      int degrees  =  startHeading - finnalheading;//得到最终的真北方向
  //    if (targetHeadingtmp < 0)
    //  targetHeadingtmp += 360;
      //if (targetHeadingtmp > 359)
     // targetHeadingtmp -=360;
      char  done = 0;
-	  printf("targetHeading %d ,turn degrees:%d \n",finnalheading,degrees);
+     int heading_sum =0;
+	 DEBUG(LOG_DEBUG,"targetHeading %d ,turn degrees:%d \n",finnalheading,degrees);
   do{
 	     if (degrees < 0)
 	     {
@@ -386,11 +476,20 @@ unsigned long millis()
 
 	         cmd_send(4,0);
 	     }
-        sleep(1);
+         usleep(500000);
+		 cmd_send(0,0);
+		  usleep(500000);
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
 	     int currentHeading  = int(heading);//headingFilter.GetValue();
-	     printf("Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, finnalheading);
-	     if (abs(currentHeading - finnalheading) <= 10)
+	     for(int i=0;i<3;i++)
+		 {
+		 	    currentHeading  = int(heading);
+				usleep(500000);
+		 		heading_sum += currentHeading;
+	     }
+		 int currentHeading_sec = heading_sum /3;
+	     DEBUG(LOG_DEBUG,"Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading_sec, finnalheading);
+	     if (abs(currentHeading_sec - finnalheading) <= 10)
 	     {
 	         done = 1;
 	     }
@@ -505,7 +604,7 @@ unsigned long millis()
 	     {
 	           if(targetPosition - (int)positionx > 20)
 	            cmd_send(2,50);//以比较高的速度运行
-	           else  cmd_send(2,50);
+	           else  cmd_send(2,40);
 	     }
 
 
@@ -589,107 +688,114 @@ void *navimanage_handle (void *arg)
     while (1)
     {
     	unsigned long loopTime = millis();
-	while(GLOBAL_SWITCH)
-	{   
-  	    if(onceread ==0)
-       	    {
-	     onceread =1;
-             if(is_file_exist("waypoints.data")!=0)
-		{
-			GLOBAL_STATUS=STOP_STATUS;
-			GLOBAL_SWITCH =0 ;
-			onceread =0;
-			DEBUG(LOG_ERR,"waypoint file is not exist \n");
-			break;	
-		}
-	     }
-	    if((latitude ==0.0)&&(longitude == 0.0))
-	    {
-		DEBUG(LOG_ERR,"GPS CANNOT LOCATION PLEASE CHECK \n");
-                GLOBAL_STATUS = STOP_STATUS;
-                GLOBAL_SWITCH = 0;
-                break;
+		while(GLOBAL_SWITCH)
+		{   
+	  	    if(onceread ==0)
+	       	    {
+		     onceread =1;
+	             if(is_file_exist("waypoints.data")!=0)
+			{
+				GLOBAL_STATUS=STOP_STATUS;
+				GLOBAL_SWITCH =0 ;
+				onceread =0;
+				DEBUG(LOG_ERR,"waypoint file is not exist \n");
+				break;	
+			}
+		     }
+		    if((latitude ==0.0)&&(longitude == 0.0))
+		    {
+			DEBUG(LOG_ERR,"GPS CANNOT LOCATION PLEASE CHECK \n");
+	                GLOBAL_STATUS = STOP_STATUS;
+	                GLOBAL_SWITCH = 0;
+	                break;
 
-	    }
-            if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
-           {
-              switch(GLOBAL_STATUS)
-              {
-                case STANDBY_STATUS://启动后的初始状态
-		DEBUG(LOG_DEBUG,"STANDBY STATUS \n");
-                lastGPSMillis =0 ;
-	        ReadWaypointsFile();
-                GLOBAL_STATUS = ROTATE_STATUS ;
-                break;
-                case ROTATE_STATUS :
-		if(targetheadingisvalid == 0)
-		{
-		  DEBUG(LOG_ERR,"TARGET HEADING IS invalid , continue\n");
-		  break;//不合法 返回
-		}
-		targetheadingisvalid = 0;
-		 SteerToHeading();		
-                RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
-               // GLOBAL_STATUS = MOVE_STATUS ;
-                break;
-                case MOVE_STATUS :
-		 if((waypointRange > 100))//大于100m 认为不合法 所以规划路径时需要注意
-		{	
-			DEBUG(LOG_ERR,"distance > 100m \n");
-			 break;
-		}	
-		 MoveDistance(waypointRange);
-                 SteerToHeading();//行驶中依然根据航向脚纠偏算法I
+		    }
+	            if ((millis() - lastSubMillis > SUBSUMPTION_INTERVAL))
+	           {
+	              switch(GLOBAL_STATUS)
+	              {
+	                case STANDBY_STATUS://启动后的初始状态
+					DEBUG(LOG_DEBUG,"STANDBY STATUS \n");
+	                lastGPSMillis =0 ;
+		        	ReadWaypointsFile();
+					CalculateHeadingToWaypoint();
+		        	CalculateDistanceToWaypoint();
+	                GLOBAL_STATUS = ROTATE_STATUS ;
+	                break;
+	                case ROTATE_STATUS :
+					if (abs((int)heading - (int)targetHeading) > 10)
+					{
+						
+	                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
+	             
+					//  DEBUG(LOG_ERR,"TARGET HEADING IS invalid , continue\n");
+					//  break;//不合法 返回
+					}else {
 
-                 break;    
-	         case AVOIDOBJ_STATUS:
-                // 根据超声波获得反馈值进行避障
-              //  int tmp_degree = DetectObstacles();
-              //    if (tmp_degree)
-              //       GLOBAL_STATUS = ROTATE_STATUS ;
-        	 break;
-                 case WAYPOINTARRIVE_STATUS:
-                 if(currentWaypoint < waypointCount )
-                 {
-                    currentWaypoint ++;
-                    GLOBAL_STATUS = ROTATE_STATUS ;
-                 }
-                 else  if(currentWaypoint >= waypointCount ){
-                    GLOBAL_STATUS = STOP_STATUS ;
-                 }
-                 break;
-                case STOP_STATUS :
-                
-                break;
-                case MANUAL_STATUS :
-                break;
-                default :
-                break;
+					}
+					
+					 SteerToHeading();	
+	                break;
+	                case MOVE_STATUS :
+					 if((waypointRange > 200))//大于100m 认为不合法 所以规划路径时需要注意
+					{	
+						DEBUG(LOG_ERR,"distance > 200m \n");
+						 break;
+					}	
+					 MoveDistance(waypointRange);
+	                 SteerToHeading();//行驶中依然根据航向脚纠偏算法I
 
-              }//end switch
-	         // 必须先运行一次 standby 状态 只有当在目的地附近3米内才会转换状态
-	         ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
-                 if (ret == 1) //点在圆圈内
-                 {   
- 			DEBUG(LOG_DEBUG,"arrive into circle scal \n");
-                         GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
-                 }
+	                 break;    
+		         case AVOIDOBJ_STATUS:
+	                // 根据超声波获得反馈值进行避障
+	              //  int tmp_degree = DetectObstacles();
+	              //    if (tmp_degree)
+	              //       GLOBAL_STATUS = ROTATE_STATUS ;
+	        	 break;
+	                 case WAYPOINTARRIVE_STATUS:
+	                 if(currentWaypoint < waypointCount )
+	                 {
+	                    currentWaypoint ++;
+	                    GLOBAL_STATUS = ROTATE_STATUS ;
+	                 }
+	                 else  if(currentWaypoint >= waypointCount ){
+	                    GLOBAL_STATUS = STOP_STATUS ;
+	                 }
+	                 break;
+	                case STOP_STATUS :
+	                
+	                break;
+	                case MANUAL_STATUS :
+	                break;
+	                default :
+	                break;
 
-     
-          	lastSubMillis = millis();
-            }//end  sub loop
-      
-          	if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
-        	{
-            		CalculateHeadingToWaypoint();
-	        	CalculateDistanceToWaypoint();
-            		lastGPSMillis = millis();
-                }
-     	}//end while switch on
+	              }//end switch
+		         // 必须先运行一次 standby 状态 只有当在目的地附近3米内才会转换状态
+		         ret =  isInRange(3, latitude , longitude, waypoints[currentWaypoint].latitude, waypoints[currentWaypoint].longitude);
+	                 if (ret == 1) //点在圆圈内
+	                 {   
+	 						DEBUG(LOG_DEBUG,"arrive into circle scal \n");
+	                         GLOBAL_STATUS = WAYPOINTARRIVE_STATUS ;
+	                 }
+
+	     
+	          	lastSubMillis = millis();
+	            }//end  sub loop
+	      
+	          	if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
+	        	{
+	        	 		if(GLOBAL_STATUS == MOVE_STATUS)
+							SteerToHeadingOfGPS();
+	            		CalculateHeadingToWaypoint();
+		        	    CalculateDistanceToWaypoint();
+	            		lastGPSMillis = millis();
+	                }
+	     	}//end while switch on
      	if(GLOBAL_STATUS == MANUAL_STATUS )
-	{
-		SteerToHeading();
-	}
+		{
+			SteerToHeading();
+		}
      
           	// Shut down if the battery level drops below 10.8V
     	if(voltage1 > 11.2)

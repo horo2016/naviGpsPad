@@ -7,6 +7,9 @@ extern "C" {
 extern double latitude ;
 
 extern double longitude;
+extern unsigned int gpsheading ;
+extern unsigned int gpsvelocity ;
+
 extern 
 void *GpsThread(void *);
 #ifdef __cplusplus
