@@ -140,7 +140,7 @@ unsigned long millis()
  * @return  
  */
  char isInRange(int raduis,double present_lat,double present_lng,double lat_circle,double lng_circle){
-    printf("--->present:%f %f ,%f %f \n",present_lat,present_lng,lat_circle,lng_circle);
+    
     double R = 6378137.0;
     float const PI_F = 3.14159265F;
     double dLat = (lat_circle- present_lat ) * M_PI / 180;
@@ -149,7 +149,7 @@ unsigned long millis()
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     double d = R * c;
     double dis = round(d);//近似值
-    printf("isrange distance %.2f \n",dis);
+    DEBUG(LOG_DEBUG,"currenpoint isinrange circle  distance :%.2f ? %d\n",dis,raduis);
     if (dis <= raduis){  //点在圆内
         return 1;
     }else {
@@ -397,7 +397,7 @@ int HeadingAnalysis(int Heading,int Bearing)
      // targetHeading is the value used by the heading PID controller.  By changing this, we change the heading
      // to which the SteerToHeading subsumption task will try to steer us.
      targetHeading = getBearing(current, waypoint);
-     printf("---->calculat two points degress is %d \n",(unsigned int)targetHeading);
+     DEBUG(LOG_DEBUG,"---->calculat two points degress is %d \n",(unsigned int)targetHeading);
    
      return;
  }
@@ -428,7 +428,7 @@ int HeadingAnalysis(int Heading,int Bearing)
      currentWaypoint++;
      if (currentWaypoint >= waypointCount)
      currentWaypoint = 0;
-     DEBUG(LOG_DEBUG,"--->two points distance is %.1f m\n",waypointRange); 
+     DEBUG(LOG_DEBUG,"--->caculate two points distance is %.1f m\n",waypointRange); 
      return;
  }
  
@@ -445,14 +445,15 @@ int HeadingAnalysis(int Heading,int Bearing)
  {
      // Make sure there's only one rotate thread running at a time.
      // TODO: proper thread synchronization would be better here
-     static bool threadActive = false;
-     if (threadActive)
-     return 0;
-     threadActive = true;
+  
  
      int finnalheading = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
- 
+
+	 static bool threadActive = false;
+     if (threadActive)
+     return 0;
+     threadActive = true;
      DEBUG(LOG_DEBUG,"rotateDegreesThread  start ****************\n");
      
      int startHeading =   headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
@@ -512,26 +513,26 @@ int HeadingAnalysis(int Heading,int Bearing)
  {
      // Make sure there's only one rotate thread running at a time.
      // TODO: proper thread synchronization would be better here
+   
+ 
+     int degrees = *(int*)threadParam;
+     free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
      static bool threadActive = false;
      if (threadActive)
      return 0;
      threadActive = true;
- 
-     int degrees = *(int*)threadParam;
-     free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
- 
-     printf("rotateDegreesThread  start ****************\n");
+     DEBUG(LOG_DEBUG,"rotateDegreesThread  start ****************\n");
      
      int startHeading =   headingFilter.GetValue();//这里获得是真北方向角，所以要转动imu找到真北方向
      
-     printf("startHeading %d  \n",startHeading);
+     DEBUG(LOG_DEBUG,"startHeading %d  \n",startHeading);
      int targetHeadingtmp =  startHeading - degrees;//得到最终的真北方向
      if (targetHeadingtmp < 0)
      targetHeadingtmp += 360;
      if (targetHeadingtmp > 359)
      targetHeadingtmp -=360;
      char  done = 0;
-	  printf("curreent heading :%d targetHeading %d ,degrees:%d \n", (int)heading,targetHeadingtmp,degrees);
+	 DEBUG(LOG_DEBUG,"curreent heading :%d targetHeading %d ,degrees:%d \n", (int)heading,targetHeadingtmp,degrees);
   do{
 	     if (degrees < 0)
 	     {
@@ -546,7 +547,7 @@ int HeadingAnalysis(int Heading,int Bearing)
 
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
 	     int currentHeading = (int)heading;//headingFilter.GetValue();
-	     printf("Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, targetHeadingtmp);
+	     DEBUG(LOG_DEBUG,"Rotating: currentHeading = %d   targetHeading = %d\n", currentHeading, targetHeadingtmp);
 	     if ((currentHeading >= targetHeadingtmp) && (degrees > 0) && (startHeading < targetHeadingtmp))
 	     {
 	         done = 1;
@@ -581,21 +582,22 @@ int HeadingAnalysis(int Heading,int Bearing)
  {
      // Make sure there's only one rotate thread running at a time.
      // TODO: proper thread synchronization would be better here
-     static bool threadActive = false;
-     if (threadActive)
-     return 0;
-     threadActive = true;
+   
  
      int meters = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
- 
-    printf("moveDistanceThread  start ****************\n");
+
+	 static bool threadActive = false;
+     if (threadActive)
+     return 0;
+     threadActive = true;
+     DEBUG(LOG_DEBUG,"moveDistanceThread  start ****************\n");
      int startPosition = positionx;
-     printf("startPosition %d  \n",startPosition);
+     DEBUG(LOG_DEBUG,"startPosition %d  \n",startPosition);
      int targetPosition = startPosition + meters;
     
      char  done = 0;
-	printf("targetPosition: %d ,meters:%d \n",targetPosition,meters);
+	 DEBUG(LOG_DEBUG,"targetPosition: %d ,meters:%d \n",targetPosition,meters);
   do{
   	 
 	     if (meters < 0)
@@ -612,7 +614,7 @@ int HeadingAnalysis(int Heading,int Bearing)
 
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
      int currentPosition = (int)positionx;
-     printf("MOve: currentPosition = %d   targetPosition = %d\n", currentPosition, targetPosition);
+     DEBUG(LOG_DEBUG,"MOve: currentPosition = %d   targetPosition = %d\n", currentPosition, targetPosition);
      if ((currentPosition <= targetPosition) && (meters < 0) && (startPosition > targetPosition))
      {
          done = 1;
@@ -684,8 +686,8 @@ void *navimanage_handle (void *arg)
     unsigned long motorsOffMillis = 0;
     bool motorsRunning = false;
  //   ReadWaypointsFile();
-    DEBUG(LOG_DEBUG,"enc8888888888888888888888888888888888888 handle \n");
-    printf("Starting main loop\n");
+    DEBUG(LOG_DEBUG,"navimanage_handle   \n");
+    
     char onceread =0;
     while (1)
     {
@@ -758,10 +760,12 @@ void *navimanage_handle (void *arg)
 	                 if(currentWaypoint < waypointCount )
 	                 {
 	                    currentWaypoint ++;
+						DEBUG(LOG_DEBUG,"currentWaypoint ++\n");
 	                    GLOBAL_STATUS = ROTATE_STATUS ;
 	                 }
 	                 else  if(currentWaypoint >= waypointCount ){
 	                    GLOBAL_STATUS = STOP_STATUS ;
+						DEBUG(LOG_ERR,"currentWaypoint >= waypointCount stop status\n");
 	                 }
 	                 break;
 	                case STOP_STATUS :
@@ -788,7 +792,7 @@ void *navimanage_handle (void *arg)
 	          	if ( millis() - lastGPSMillis > CALCULATE_GPS_HEADING_INTERVAL)
 	        	{
 	        	 		if(GLOBAL_STATUS == MOVE_STATUS)
-							SteerToHeadingOfGPS();
+						SteerToHeadingOfGPS();
 	            		CalculateHeadingToWaypoint();
 		        	    CalculateDistanceToWaypoint();
 	            		lastGPSMillis = millis();
