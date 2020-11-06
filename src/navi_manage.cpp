@@ -28,6 +28,10 @@
 #include <RTIMULib.h>
 #include"stm32_control.h"
 
+
+
+#include<sched.h>
+
 #define MAX_SPEED 150
 #define NORMAL_SPEED 30
 
@@ -62,6 +66,8 @@ unsigned long voltage2_t;
 
 bool voltageHysteresis = 0;
 
+int movethreadid =0;
+int rotatethreadid =0;
 
 
 /*******************************************************************************
@@ -446,7 +452,7 @@ int HeadingAnalysis(int Heading,int Bearing)
      // Make sure there's only one rotate thread running at a time.
      // TODO: proper thread synchronization would be better here
   
- 
+     rotatethreadid = pthread_self();
      int finnalheading = *(int*)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
 
@@ -507,6 +513,8 @@ int HeadingAnalysis(int Heading,int Bearing)
     cmd_send(0,0);
      threadActive = 0;
       GLOBAL_STATUS = MOVE_STATUS ;
+	   DEBUG(LOG_DEBUG,"rotate thread exit \n");
+      pthread_exit(NULL);
      return 0;
  }
  static void *rotateDegreesThread1(void *threadParam)
@@ -582,14 +590,17 @@ int HeadingAnalysis(int Heading,int Bearing)
  {
      // Make sure there's only one rotate thread running at a time.
      // TODO: proper thread synchronization would be better here
-   
- 
-     int meters = *(int*)threadParam;
+   movethreadid = pthread_self();
+     printf("into movedistance thread top %lu \n",movethreadid); 
+     int meters = *(int *)threadParam;
      free(threadParam);  // Must have been malloc()'d by the caller of this thread routine!!
 
 	 static bool threadActive = false;
      if (threadActive)
+{
+     printf("yhread have been running ,return ");
      return 0;
+}
      threadActive = true;
      DEBUG(LOG_DEBUG,"moveDistanceThread  start ****************\n");
      int startPosition = positionx;
@@ -629,9 +640,28 @@ int HeadingAnalysis(int Heading,int Bearing)
      while ((!done)&&(GLOBAL_STATUS == MOVE_STATUS));
     cmd_send(0,0);
      threadActive = 0;
+	    DEBUG(LOG_DEBUG,"move distance  thread exit \n");
+      pthread_exit(NULL);
      return 0;
  }
  
+bool is_thread_alive(pthread_t tid)
+{
+        bool bAlive = false;
+        if(tid)
+        {		
+            int ret = pthread_tryjoin_np(tid, NULL);
+            if (ret != 0) {
+                /* Handle error */
+                if(EBUSY == ret)
+                {
+                    bAlive = true;
+                }
+            }
+        }	
+ 
+        return bAlive;
+}
  /*******************************************************************************
  * function name : RotateDegrees
  * description   : caclulate  rotate Degrees  N DEGREE 
@@ -643,9 +673,28 @@ int HeadingAnalysis(int Heading,int Bearing)
  *******************************************************************************/
   void RotateDegrees(int degrees)
  {
+     pthread_t rotThreadId;
+     static bool threadActive = false;
+     if (threadActive){
+       printf("the specified thread (%lu) is into \n",rotatethreadid);
+       int kill_rc = is_thread_alive(rotatethreadid);
+	if(kill_rc == true){
+		printf("the specified thread (%lu) is alive\n",rotatethreadid);
+	       return ;
+		}
+		else{
+			printf("the specified thread (%lu) did not exists or already quit\n",rotatethreadid);
+		     
+		}	 
+	 }
+     
+	   threadActive = true;
+   
+	 
+      
      int *rotationDegrees = (int *)malloc(sizeof(int));
      *rotationDegrees = degrees;
-     pthread_t rotThreadId;
+   
      pthread_create(&rotThreadId, NULL, rotateDegreesThread, rotationDegrees);
  }
 
@@ -660,10 +709,43 @@ int HeadingAnalysis(int Heading,int Bearing)
  *******************************************************************************/
   void MoveDistance(int meters)
  {
-     int *MoviMeters = (int *)malloc(sizeof(int));
-     *MoviMeters = meters;
+    
      pthread_t rotThreadId;
-     pthread_create(&rotThreadId, NULL, moveDistanceThread, MoviMeters);
+     static bool threadActive = false;
+	 
+     if (threadActive){
+       printf("the specified MoveDistance thread (%lu) is into \n",rotThreadId);
+      /* int kill_rc = is_thread_alive(rotThreadId);
+	if(kill_rc == true){
+		printf("the specified thread (%lu) is alive\n",rotThreadId);
+	       return ;
+		}
+		else{
+			printf("the specified thread (%lu) did not exists or already quit\n",rotThreadId);
+		     
+		}	*/
+
+	       int kill_rc = pthread_kill(movethreadid,0);
+		if(kill_rc == ESRCH)
+		printf("the specified thread (%lu) did not exists or already quit\n",movethreadid);
+		else if(kill_rc == EINVAL)
+		printf("signal is invalid\n");
+		else{
+		printf("the specified thread (%lu) is alive\n",movethreadid);
+		return;
+		}
+	 }
+     
+	   threadActive = true;
+	   
+	 int *MoviMeters = (int *)malloc(sizeof(int));
+     *MoviMeters = meters;
+     if(pthread_create(&rotThreadId, NULL, moveDistanceThread,MoviMeters))
+    {
+    	    perror( "pthread_create error "); 
+            DEBUG(LOG_ERR,"MOVE THREAD CREATE ERROR \n");
+    }
+	
  }
 
 /*******************************************************************************
@@ -730,12 +812,12 @@ void *navimanage_handle (void *arg)
 					if (abs((int)heading - (int)targetHeading) > 10)
 					{
 						
-	                 RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
+	                              RotateDegrees(targetHeading);//这里需要根据求出的角度进行转动
 	             
 					//  DEBUG(LOG_ERR,"TARGET HEADING IS invalid , continue\n");
 					//  break;//不合法 返回
 					}else {
-
+						 GLOBAL_STATUS = MOVE_STATUS ;
 					}
 					
 					 SteerToHeading();	
