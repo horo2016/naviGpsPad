@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <RTIMULib.h>
 #include"stm32_control.h"
+#include "check_dis_module.h"
 
 #define MAX_SPEED 150
 #define NORMAL_SPEED 30
@@ -366,13 +367,13 @@ int HeadingAnalysis(int Heading,int Bearing)
      // This doesn't do anything currently
      // TODO:  Do something useful here
      //
- //    int distanceAhead = distance1;
- //    if (distanceAhead > 4 && distanceAhead < 40 ) // cm
- //    {
- //        detectObstaclesControl->active = true;
- //    }
- //    else
-      //   detectObstaclesControl->active = false;
+      int distanceAhead = global_dis;
+     if (distanceAhead > 4 && distanceAhead < 40 ) // cm
+     {
+       ret = true ;   //  detectObstaclesControl->active = true;
+     }
+      else
+          ret = false;  //detectObstaclesControl->active = false;
 
       //如果存在障碍物，返回避障动作,及角度值
  }
@@ -480,6 +481,7 @@ int HeadingAnalysis(int Heading,int Bearing)
 	     }
          usleep(500000);
 		 cmd_send(0,0);
+		 car_stop();
 		  usleep(500000);
      // Backup method - use the magnetometer to see what direction we're facing.  Stop turning when we reach the target heading.
 	     int currentHeading  = int(heading);//headingFilter.GetValue();
@@ -505,6 +507,7 @@ int HeadingAnalysis(int Heading,int Bearing)
      }
      while (!done);
     cmd_send(0,0);
+	 car_stop();
      threadActive = 0;
       GLOBAL_STATUS = MOVE_STATUS ;
      return 0;
@@ -565,6 +568,7 @@ int HeadingAnalysis(int Heading,int Bearing)
      }
      while (!done);
     cmd_send(0,0);
+	 car_stop();
      threadActive = 0;
      return 0;
  }
@@ -606,9 +610,13 @@ int HeadingAnalysis(int Heading,int Bearing)
 	     }
 	     else
 	     {
-	           if(targetPosition - (int)positionx > 20)
+	           if(targetPosition - (int)positionx > 20){
 	            cmd_send(2,50);//以比较高的速度运行
-	           else  cmd_send(2,40);
+	            car_forward();
+	           	}
+	           else {
+			   	cmd_send(2,40);
+	           	}
 	     }
 
 
@@ -628,6 +636,7 @@ int HeadingAnalysis(int Heading,int Bearing)
      }
      while ((!done)&&(GLOBAL_STATUS == MOVE_STATUS));
     cmd_send(0,0);
+	car_stop();
      threadActive = 0;
      return 0;
  }
@@ -680,7 +689,7 @@ void *navimanage_handle (void *arg)
 	char ret = -1;
 
    
-    unsigned long lastLEDMillis = 0;
+    unsigned long lastDISMillis = 0;
     unsigned long lastSubMillis = 0;
     unsigned long lastGPSMillis = 0;
     unsigned long motorsOffMillis = 0;
@@ -752,6 +761,7 @@ void *navimanage_handle (void *arg)
 	                 break;    
 		         case AVOIDOBJ_STATUS:
 	                // 根据超声波获得反馈值进行避障
+	                cmd_send(4, 0.3);
 	              //  int tmp_degree = DetectObstacles();
 	              //    if (tmp_degree)
 	              //       GLOBAL_STATUS = ROTATE_STATUS ;
@@ -795,8 +805,23 @@ void *navimanage_handle (void *arg)
 						SteerToHeadingOfGPS();
 	            		CalculateHeadingToWaypoint();
 		        	    CalculateDistanceToWaypoint();
-	            		lastGPSMillis = millis();
-	                }
+	            		lastGPSMillis = millis(); //
+	            }
+				if ( millis() - lastDISMillis > DIS_BLINK_INTERVAL)
+	        	{
+	        	 		if(GLOBAL_STATUS == MOVE_STATUS)
+	        	 		{
+							if (DetectObstacles() == true)
+								GLOBAL_STATUS == AVOIDOBJ_STATUS;
+	        	 			}else if(GLOBAL_STATUS == AVOIDOBJ_STATUS)
+								{
+								if (DetectObstacles() == false)
+								GLOBAL_STATUS == MOVE_STATUS;
+
+							}
+						
+	            		lastDISMillis = millis(); //lastDISMillis
+	            }
 	     	}//end while switch on
      	if(GLOBAL_STATUS == MANUAL_STATUS )
 		{
