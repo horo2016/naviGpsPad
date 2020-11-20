@@ -34,7 +34,7 @@ LDFLAGS += -ldl
 
 LDFLAGS +=  -ldl -lm -lz -lstdc++ 
 
-
+LDFLAGS += -lwiringPi
 LDFLAGS += -lrt -lpthread -pthread -lm -ldl 
 
 C_SRC=
@@ -54,6 +54,7 @@ C_SRC+=src/stm32_control.c
 C_SRC+=src/Uart_comm.c
 C_SRC+=src/gps_hal.c 
 C_SRC+=src/cJSON.c
+C_SRC+= src/check_dis_module.c
 
 CXX_SRC=
 CXX_SRC +=src/kalman.cpp

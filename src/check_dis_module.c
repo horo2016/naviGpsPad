@@ -3,6 +3,11 @@
 #include"wiringPi.h"
 #include"osp_syslog.h"
 
+
+
+#define pwmpin 1
+#define mode PWM_MODE_MS
+
 int global_dis = -1;
 
 void gpio_init()//echo--29    trig--28  pwm--27
@@ -18,6 +23,11 @@ void gpio_init()//echo--29    trig--28  pwm--27
 
 	pinMode (25, OUTPUT) ; //火焰传感器
 	pinMode (24, OUTPUT) ; //火焰
+
+	pinMode(pwmpin,PWM_OUTPUT);
+    	pwmSetMode(mode);
+
+//	pwmSetRange(600);//600/60 =10khz
 	//启动物理开关
     pullUpDnControl(28,PUD_DOWN);
 	
@@ -29,6 +39,12 @@ void gpio_init()//echo--29    trig--28  pwm--27
 	digitalWrite(25,0);
 	digitalWrite (22, 0) ;
 	
+}
+//60 full;30-50%
+void set_duty_speed(int duty)
+{
+	pwmWrite(pwmpin,duty);
+
 }
 //让多级旋转的角度
 //angel  0 45 90 180
@@ -178,8 +194,8 @@ static  char btnflg =0;
 }
 void turn_left()
 {
- 	digitalWrite(22, 1) ;
-	digitalWrite(23,0);
+ 	digitalWrite(22, 0) ;
+	digitalWrite(23,1);
 	
 	digitalWrite(24, 0) ; //
 	digitalWrite(25,1);
@@ -189,8 +205,8 @@ void turn_left()
 void turn_right()
 {
 
-	digitalWrite (22, 0) ;
-	digitalWrite(23,1);
+	digitalWrite (22, 1) ;
+	digitalWrite(23,0);
 
 	digitalWrite(24, 1) ; //
 	digitalWrite(25, 0);
@@ -198,8 +214,8 @@ void turn_right()
 }
 void car_forward()
 {
-	digitalWrite (22, 0) ;
-	digitalWrite(23,1);
+	digitalWrite (22, 1) ;
+	digitalWrite(23,0);
 
 	digitalWrite(24, 0) ; //
 	digitalWrite(25, 1);
@@ -217,12 +233,38 @@ void car_stop()
 	digitalWrite(25, 0);
 
 }
+void cmd_rasp_send(char cmd,char value)
+{
+	if(cmd ==0 )
+	{
+		car_stop();
+                set_duty_speed(0);	
 
-void *getUltrasonicThread(void *)
+	}else if(cmd ==1)
+{
+   car_forward();
+   set_duty_speed(value);
+
+}else  if(cmd ==3)
+{
+   turn_left();
+   set_duty_speed(value);
+}else  if(cmd ==4)
+{
+   turn_right();
+   set_duty_speed(value);
+}
+
+
+
+}
+void *getUltrasonicThread(void *arg)
 {
 
   gpio_init();
-
+  cmd_rasp_send(1,700);
+  sleep(5);
+  cmd_rasp_send(0,0);
   while(1)
   	{
 		global_dis = disMeasure();
