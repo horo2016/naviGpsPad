@@ -10,10 +10,10 @@
 
 int global_dis = -1;
 
-void gpio_init()//echo--29    trig--28  pwm--27
+void gpio_init()//echo--27    trig--28  pwm--27
 {
    wiringPiSetup();  
-	pinMode (29, INPUT) ; //echo
+	pinMode (27, INPUT) ; //echo
 	pinMode (28, OUTPUT) ; //trig
 	//pinMode (27, OUTPUT) ; //pwm sg09
 
@@ -152,10 +152,10 @@ int disMeasure(void)
 	delayMicroseconds(10);
 	//发出超声波脉冲
 	digitalWrite(28, LOW);
-	while(!(digitalRead(29) == 1));
+	while(!(digitalRead(27) == 1));
 	gettimeofday(&tv1, NULL);
 	//获取当前时间
-	while(!(digitalRead(29) == 0));
+	while(!(digitalRead(27) == 0));
 	gettimeofday(&tv2, NULL);
 	//获取当前时间
 	start = tv1.tv_sec * 1000000 + tv1.tv_usec;
